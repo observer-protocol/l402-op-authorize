@@ -15,7 +15,7 @@ Same vendored verification core as [`ows-op-verify`](https://github.com/observer
   signed `PolicyEvaluationCredential` and ingest the preimage into AT-ARS.
 - **Seller side (Aperture), the wedge:** verify a **holder-bound** authorization credential — a
   W3C Verifiable Presentation signed by the subject `did:key` over a server challenge — before
-  serving. This is the binding macaroons structurally cannot provide.
+  serving. Macaroons alone structurally cannot provide this type of binding.
 
 ## Authorization, not personhood
 Credentials assert *"X authorized this agent to do Y, valid until Z"* (X = a human, org, or
@@ -62,7 +62,7 @@ The agent builds the VP with `signPresentation({ credential, holderDid, holderPr
 A bare credential (no holder proof), a replayed challenge, a credential whose subject is not the
 presenter, or an expired/revoked credential are all **refused**. This is the binding macaroons cannot give.
 
-## Why holder binding (the §8 finding)
+## Why holder binding
 L402 tokens are bearer instruments and the agent never signs with its `did:key` in the native flow, so
 a presented credential with no proof-of-possession would be replayable. The seller side requires a
 holder-signed Verifiable Presentation over a challenge — standard W3C, no new crypto. Details:
@@ -75,5 +75,3 @@ npm test                  # typecheck + build + 12 conformance cases (6 buyer, 6
 npm run check:core-sync   # vendored core must be byte-identical to ows-op-verify
 node demo/scenes.mjs      # the self-narrating buyer→seller demo
 ```
-
-MIT.

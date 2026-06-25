@@ -8,7 +8,7 @@
 // Opt-in and seller-elective: the permissionless default L402 path is untouched.
 
 import { randomBytes } from 'node:crypto';
-import type { VerifierConfig } from './core/types.js';
+import type { VerifierConfig } from '@observer-protocol/policy-engine';
 import { verifyPresentation, type VerifiablePresentation } from './presentation.js';
 import { verifyCredentialObject } from './verify.js';
 

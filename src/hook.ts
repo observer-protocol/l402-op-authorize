@@ -7,7 +7,7 @@
 // This module is framework-agnostic (no HTTP server baked in) so it drops into
 // any handler. See examples/hook-server.mjs for a minimal node http wrapper.
 
-import type { VerifierConfig } from './core/types.js';
+import type { VerifierConfig } from '@observer-protocol/policy-engine';
 import { decodeL402 } from './l402.js';
 import { authorizeL402Payment } from './buyer.js';
 

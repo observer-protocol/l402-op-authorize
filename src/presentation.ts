@@ -11,10 +11,8 @@
 // `assertionMethod` (a credential).
 
 import { sign as nodeSign, type KeyObject } from 'node:crypto';
-import { jcsBytes } from './core/jcs.js';
-import { sha256, ed25519Verify, decodeEd25519Multibase } from './core/crypto.js';
-import { base58Decode, base58Encode } from './core/base58.js';
-import type { ObserverDelegationCredential } from './core/types.js';
+import { jcsBytes, sha256, ed25519Verify, decodeEd25519Multibase, base58Decode, base58Encode } from '@observer-protocol/policy-engine';
+import type { ObserverDelegationCredential } from '@observer-protocol/policy-engine';
 import { isDidKey, resolveDidKey } from './didkey.js';
 
 const VP_CONTEXT = ['https://www.w3.org/ns/credentials/v2'];

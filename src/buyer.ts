@@ -9,7 +9,7 @@
 // produces the allow/deny the hook acts on.
 
 import type { DecodedPayment } from './l402.js';
-import type { PolicyContext, ResolvedTransfer, RailDef, VerifierConfig } from './core/types.js';
+import type { PolicyContext, ResolvedTransfer, RailDef, VerifierConfig } from '@observer-protocol/policy-engine';
 import { verifyCredential, enforceMandate, type Verdict } from './verify.js';
 
 /** chain_id used for the Lightning rail in the verifier config + the mandate's

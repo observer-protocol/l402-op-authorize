@@ -8,7 +8,7 @@
 // Only Ed25519 did:key is supported (multicodec 0xed01), matching the engine's
 // eddsa-jcs-2022 proof suite. Any other key type is rejected.
 
-import { decodeEd25519Multibase } from './core/proof.js';
+import { decodeEd25519Multibase } from '@observer-protocol/policy-engine';
 
 export interface DidKeyDocument {
   id: string;

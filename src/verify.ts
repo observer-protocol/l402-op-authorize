@@ -5,17 +5,21 @@
 // (SCOPE §5), not did:web. No net-new crypto.
 
 import { readFileSync } from 'node:fs';
-import { validateStructure, checkValidityWindow } from './core/schema.js';
-import { findAssertionMethodKey } from './core/resolve.js';
-import { verifyEddsaJcs2022, decodeEd25519Multibase } from './core/proof.js';
-import { checkStatusEntry } from './core/revocation.js';
-import { evaluateMandate } from './core/mandate.js';
+import {
+  validateStructure,
+  checkValidityWindow,
+  findAssertionMethodKey,
+  verifyEddsaJcs2022,
+  decodeEd25519Multibase,
+  checkStatusEntry,
+  evaluateMandate,
+} from '@observer-protocol/policy-engine';
 import type {
   ObserverDelegationCredential,
   PolicyContext,
   ResolvedTransfer,
   VerifierConfig,
-} from './core/types.js';
+} from '@observer-protocol/policy-engine';
 import { isDidKey, resolveDidKey } from './didkey.js';
 
 export interface Verdict {

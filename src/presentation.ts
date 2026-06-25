@@ -10,10 +10,24 @@
 // VC verifier is proofPurpose `authentication` (a presentation), not
 // `assertionMethod` (a credential).
 
-import { sign as nodeSign, type KeyObject } from 'node:crypto';
-import { jcsBytes, sha256, ed25519Verify, decodeEd25519Multibase, base58Decode, base58Encode } from '@observer-protocol/policy-engine';
+import { sign as nodeSign, createPublicKey, verify as cryptoVerify, type KeyObject } from 'node:crypto';
+import { jcsBytes, sha256, decodeEd25519Multibase, base58Decode, base58Encode } from '@observer-protocol/policy-engine';
 import type { ObserverDelegationCredential } from '@observer-protocol/policy-engine';
 import { isDidKey, resolveDidKey } from './didkey.js';
+
+// SPKI DER prefix for a raw Ed25519 public key (RFC 8410). Required to wrap
+// the raw 32-byte key material into a format node:crypto's verify() accepts.
+const ED25519_SPKI_PREFIX = Buffer.from('302a300506032b6570032100', 'hex');
+
+function ed25519Verify(rawPublicKey: Buffer, data: Buffer, signature: Buffer): boolean {
+  if (rawPublicKey.length !== 32) throw new Error('Ed25519 public key must be 32 bytes');
+  const keyObject = createPublicKey({
+    key: Buffer.concat([ED25519_SPKI_PREFIX, rawPublicKey]),
+    format: 'der',
+    type: 'spki',
+  });
+  return cryptoVerify(null, data, keyObject, signature);
+}
 
 const VP_CONTEXT = ['https://www.w3.org/ns/credentials/v2'];
 

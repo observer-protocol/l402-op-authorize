@@ -36,7 +36,7 @@ export function makeAgent() {
 /** Issue a signed L402 authorization credential (VAC): X authorized agent to do
  * Y until Z, with a per-payment sat ceiling + an origin allowlist. Pass
  * actionScope/tradingMandate to override the defaults wholesale (e.g. a
- * v2.2 crossRailBudget mandate — set schemaId to the v2.2 URL with it). */
+ * v2.3 crossRailBudget mandate — set schemaId to the v2.2 URL with it). */
 export function issueVac({ issuerDid, issuerPriv, issuerVm, subjectDid, ceilingSats = 100000, allowList = ['api.example.com'], validUntil = '2027-01-01T00:00:00Z', actionScope, tradingMandate, schemaId = 'https://observerprotocol.org/schemas/delegation/v2.1.json' }) {
   const doc = {
     '@context': ['https://www.w3.org/ns/credentials/v2'],
@@ -68,7 +68,7 @@ export function verifierConfig(issuerDid, dir, credentialPath) {
     issuerDid,
     schemaAllowlist: [
       'https://observerprotocol.org/schemas/delegation/v2.1.json',
-      'https://observerprotocol.org/schemas/delegation/v2.2.json',
+      'https://observerprotocol.org/schemas/delegation/v2.3.json',
     ],
     revocation: { maxStalenessHours: 24, onUnreachable: 'cache-then-deny', fetchTimeoutMs: 1500 },
     didCache: { maxStalenessHours: 24 },

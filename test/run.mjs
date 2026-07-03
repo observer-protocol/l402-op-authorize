@@ -51,7 +51,7 @@ console.log('— buyer side (cross-rail budget) —');
   const crOpts = {
     actionScope: { allowed_rails: ['lightning', 'eip155:84532'] },
     tradingMandate: { crossRailBudget: { amount: '5', currency: 'USD', window: 'P1D', rates: { sat: '0.0005', USDC: '1' } } },
-    schemaId: 'https://observerprotocol.org/schemas/delegation/v2.2.json',
+    schemaId: 'https://observerprotocol.org/schemas/delegation/v2.3.json',
   };
   const cfg = verifierConfig(principal.did, dir, writeVac(crOpts));
 

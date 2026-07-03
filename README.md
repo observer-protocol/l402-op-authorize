@@ -1,5 +1,7 @@
 # @observer-protocol/l402-op-authorize
 
+**The L402/Lightning instance of [OP Crossrail](https://observerprotocol.org)** — one signed mandate, one rolling cross-rail budget, one shared spend ledger, enforced on every rail an agent pays on. This engine enforces it at the Lightning pre-payment hook.
+
 Observer Protocol's fourth enforcement engine: **authorization for L402 / Lightning agentic
 commerce**, over the `lnget` (buyer) and Aperture (seller) seam of Lightning Labs' L402 stack.
 Composes via a vendor-neutral env hook, with **no changes to any Lightning Labs repo**.

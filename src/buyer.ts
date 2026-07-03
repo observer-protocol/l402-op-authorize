@@ -9,7 +9,8 @@
 // produces the allow/deny the hook acts on.
 
 import type { DecodedPayment } from './l402.js';
-import type { PolicyContext, ResolvedTransfer, RailDef, VerifierConfig } from '@observer-protocol/policy-engine';
+import type { CrossRailLedger, PolicyContext, ResolvedTransfer, RailDef, VerifierConfig } from '@observer-protocol/policy-engine';
+import { formatBudgetUnits } from '@observer-protocol/policy-engine';
 import { verifyCredential, enforceMandate, type Verdict } from './verify.js';
 
 /** chain_id used for the Lightning rail in the verifier config + the mandate's
@@ -31,6 +32,14 @@ export interface L402AuthInput {
    * carries a velocity cap then fails closed. */
   dailyTotalRaw?: bigint;
   walletId?: string;
+  /** Shared cross-rail spend ledger (the same file the x402 engine writes).
+   * Source of both the same-asset velocity counter and the cross-rail budget
+   * total when the explicit fields above/below are not supplied. A mandate
+   * carrying tradingMandate.crossRailBudget with neither a ledger nor a
+   * crossRailTotal fails closed (no counter can be established). */
+  ledger?: CrossRailLedger;
+  /** Explicit cross-rail total (CROSS_RAIL_SCALE units) — overrides the ledger. */
+  crossRailTotal?: { total: bigint; currency: string };
 }
 
 /** Build the single asset/amount/counterparty view the mandate enforces against,
@@ -68,16 +77,39 @@ export async function authorizeL402Payment(config: VerifierConfig, input: L402Au
   if (!credVerdict.allow || !credVerdict.cred) return credVerdict;
 
   const resolved = resolvedFromL402(input.decoded);
-  const ctx: PolicyContext = {
+  let ctx: PolicyContext = {
     chain_id: LIGHTNING_CHAIN_ID,
     wallet_id: input.walletId ?? 'lnget',
     api_key_id: 'lnget',
     transaction: { to: input.decoded.counterparty },
     timestamp: new Date(nowMs).toISOString(),
   };
+
+  // Same-asset velocity counter: explicit value wins, then the shared ledger.
+  let dailyTotalRaw = input.dailyTotalRaw;
+  if (dailyTotalRaw === undefined && input.ledger && resolved.assetSymbol) {
+    dailyTotalRaw = input.ledger.sumWindowRaw(resolved.assetSymbol, nowMs);
+  }
+
+  // Cross-rail budget total, converted at the mandate's principal-attested
+  // rates (see policy-engine cross-rail.ts). A ledger sum that cannot be
+  // established denies rather than silently under-counting.
+  const notes: string[] = [];
+  const crb = credVerdict.cred.credentialSubject.tradingMandate?.crossRailBudget;
+  if (input.crossRailTotal) {
+    ctx = { ...ctx, cross_rail: { total: input.crossRailTotal.total.toString(), currency: input.crossRailTotal.currency } };
+  } else if (crb && input.ledger && crb.rates && typeof crb.rates === 'object') {
+    const sum = input.ledger.sumWindowConverted(crb.rates, nowMs);
+    if (!sum.ok) {
+      return { allow: false, reason: `[cross-rail] ${sum.reason}`, notes: [...credVerdict.notes], cred: credVerdict.cred };
+    }
+    ctx = { ...ctx, cross_rail: { total: sum.total.toString(), currency: crb.currency } };
+    notes.push(`cross-rail ledger total before this payment: ${formatBudgetUnits(sum.total)} ${crb.currency}`);
+  }
+
   const verdict = enforceMandate(ctx, credVerdict.cred, config, {
     resolvedOverride: resolved,
-    ...(input.dailyTotalRaw !== undefined ? { dailyTotalRaw: input.dailyTotalRaw } : {}),
+    ...(dailyTotalRaw !== undefined ? { dailyTotalRaw } : {}),
   });
-  return { allow: verdict.allow, reason: verdict.reason, notes: [...credVerdict.notes, ...verdict.notes], cred: credVerdict.cred };
+  return { allow: verdict.allow, reason: verdict.reason, notes: [...credVerdict.notes, ...notes, ...verdict.notes], cred: credVerdict.cred };
 }

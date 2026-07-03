@@ -34,24 +34,26 @@ export function makeAgent() {
 }
 
 /** Issue a signed L402 authorization credential (VAC): X authorized agent to do
- * Y until Z, with a per-payment sat ceiling + an origin allowlist. */
-export function issueVac({ issuerDid, issuerPriv, issuerVm, subjectDid, ceilingSats = 100000, allowList = ['api.example.com'], validUntil = '2027-01-01T00:00:00Z' }) {
+ * Y until Z, with a per-payment sat ceiling + an origin allowlist. Pass
+ * actionScope/tradingMandate to override the defaults wholesale (e.g. a
+ * v2.2 crossRailBudget mandate — set schemaId to the v2.2 URL with it). */
+export function issueVac({ issuerDid, issuerPriv, issuerVm, subjectDid, ceilingSats = 100000, allowList = ['api.example.com'], validUntil = '2027-01-01T00:00:00Z', actionScope, tradingMandate, schemaId = 'https://observerprotocol.org/schemas/delegation/v2.1.json' }) {
   const doc = {
     '@context': ['https://www.w3.org/ns/credentials/v2'],
-    id: 'urn:uuid:l402-' + b58(sha(Buffer.from(subjectDid)).subarray(0, 8)),
+    id: 'urn:uuid:l402-' + b58(sha(Buffer.from(subjectDid + JSON.stringify({ actionScope, tradingMandate }))).subarray(0, 8)),
     type: ['VerifiableCredential', 'ObserverDelegationCredential'],
     issuer: issuerDid,
     validFrom: '2026-06-01T00:00:00Z',
     validUntil,
-    credentialSchema: { id: 'https://observerprotocol.org/schemas/delegation/v2.1.json', type: 'JsonSchema' },
+    credentialSchema: { id: schemaId, type: 'JsonSchema' },
     credentialSubject: {
       id: subjectDid,
       authorizationLevel: 'policy',
       authorizationConfig: { policy: { policy_id: 'l402', rail_preference: ['lightning'] } },
-      actionScope: { allowed_rails: ['lightning'], per_transaction_ceiling: { amount: String(ceilingSats), currency: 'sat' } },
+      actionScope: actionScope ?? { allowed_rails: ['lightning'], per_transaction_ceiling: { amount: String(ceilingSats), currency: 'sat' } },
       delegationScope: { may_delegate_further: false },
       enforcementMode: 'pre_transaction_check',
-      tradingMandate: { unit: 'sat', maxNotionalPerOrder: ceilingSats, counterparty: { allowList } },
+      tradingMandate: tradingMandate ?? { unit: 'sat', maxNotionalPerOrder: ceilingSats, counterparty: { allowList } },
     },
   };
   const po = { '@context': doc['@context'], type: 'DataIntegrityProof', cryptosuite: 'eddsa-jcs-2022', created: '2026-06-15T00:00:00Z', verificationMethod: issuerVm, proofPurpose: 'assertionMethod' };
@@ -64,7 +66,10 @@ export function verifierConfig(issuerDid, dir, credentialPath) {
   return {
     credentialPath: credentialPath ?? join(dir, 'agent-delegation.json'),
     issuerDid,
-    schemaAllowlist: ['https://observerprotocol.org/schemas/delegation/v2.1.json'],
+    schemaAllowlist: [
+      'https://observerprotocol.org/schemas/delegation/v2.1.json',
+      'https://observerprotocol.org/schemas/delegation/v2.2.json',
+    ],
     revocation: { maxStalenessHours: 24, onUnreachable: 'cache-then-deny', fetchTimeoutMs: 1500 },
     didCache: { maxStalenessHours: 24 },
     cacheDir: join(dir, 'cache'),

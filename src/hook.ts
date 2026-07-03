@@ -8,6 +8,7 @@
 // any handler. See examples/hook-server.mjs for a minimal node http wrapper.
 
 import type { VerifierConfig } from '@observer-protocol/policy-engine';
+import { CrossRailLedger } from '@observer-protocol/policy-engine';
 import { decodeL402 } from './l402.js';
 import { authorizeL402Payment } from './buyer.js';
 
@@ -22,6 +23,12 @@ export interface HookRequest {
   asset?: { amount: string; unit: string; decimals: number };
   /** Raw amount already spent today in the payment asset, for the velocity cap. */
   dailyTotalRaw?: string;
+  /** Path to the shared cross-rail spend ledger (the same file the x402 engine
+   * writes). When set, it feeds the velocity + cross-rail counters, and an
+   * ALLOWED payment is recorded into it immediately — conservative semantics:
+   * the budget is consumed at allow-time even if the Lightning payment later
+   * fails (lnget has no post-payment callback to commit/release against). */
+  crossRailLedgerPath?: string;
 }
 
 export interface HookResponse {
@@ -43,10 +50,20 @@ export async function handleL402PaymentHook(config: VerifierConfig, body: HookRe
       ...(body.challenge ? { challenge: body.challenge } : {}),
       ...(body.asset ? { asset: body.asset } : {}),
     });
+    const ledger = body.crossRailLedgerPath ? new CrossRailLedger(body.crossRailLedgerPath) : undefined;
     const verdict = await authorizeL402Payment(config, {
       decoded,
       ...(body.dailyTotalRaw !== undefined ? { dailyTotalRaw: BigInt(body.dailyTotalRaw) } : {}),
+      ...(ledger ? { ledger } : {}),
     });
+    if (verdict.allow && ledger) {
+      // Count the spend at allow-time (see crossRailLedgerPath doc above).
+      if (decoded.assetAmount !== undefined && decoded.assetUnit && decoded.assetDecimals !== undefined) {
+        ledger.record({ rail: 'lightning', asset: decoded.assetUnit, amountRaw: decoded.assetAmount, decimals: decoded.assetDecimals });
+      } else if (decoded.amountSats !== null) {
+        ledger.record({ rail: 'lightning', asset: 'sat', amountRaw: String(decoded.amountSats), decimals: 0 });
+      }
+    }
     return { decision: verdict.allow ? 'allow' : 'deny', reason: verdict.reason, notes: verdict.notes };
   } catch (e) {
     return { decision: 'deny', reason: `[hook] fail-closed: ${(e as Error).message}`, notes: [] };

@@ -43,6 +43,37 @@ await buyer('expired credential → DENY', { validUntil: '2026-06-10T00:00:00Z' 
 await buyer('Taproot-Asset USDT 5 (≤100k unit cap) → ALLOW', { ceilingSats: 100, allowList: ['api.example.com'] },
   { origin: 'https://api.example.com/x', asset: { amount: '5000000', unit: 'sat', decimals: 6 } }, true); // unit 'sat' so it scales against the sat ceiling; amount 5 (5e6 raw @6) ≤ 100
 
+// ---- BUYER SIDE: cross-rail budget (shared ledger with the x402 engine) ----
+console.log('— buyer side (cross-rail budget) —');
+{
+  const { CrossRailLedger } = await import('@observer-protocol/policy-engine');
+  const { handleL402PaymentHook } = await import('../dist/index.mjs');
+  const crOpts = {
+    actionScope: { allowed_rails: ['lightning', 'eip155:84532'] },
+    tradingMandate: { crossRailBudget: { amount: '5', currency: 'USD', window: 'P1D', rates: { sat: '0.0005', USDC: '1' } } },
+    schemaId: 'https://observerprotocol.org/schemas/delegation/v2.2.json',
+  };
+  const cfg = verifierConfig(principal.did, dir, writeVac(crOpts));
+
+  // The x402 engine already spent 3 USDC in the window (same file, other rail).
+  const ledgerPath = join(dir, 'cross-rail-ledger.jsonl');
+  const ledger = new CrossRailLedger(ledgerPath);
+  ledger.record({ rail: 'x402:eip155:84532', asset: 'USDC', amountRaw: '3000000', decimals: 6 });
+
+  const v1 = await authorizeL402Payment(cfg, { decoded: decodeL402({ origin: 'https://api.example.com/x', invoice: 'lnbc30u1x' }), nowMs: NOW, ledger });
+  assert('cross-rail: 3000 sats (1.5 USD) after 3 USD x402 spend (4.5/5) → ALLOW', v1.allow === true, v1.reason);
+  const v2 = await authorizeL402Payment(cfg, { decoded: decodeL402({ origin: 'https://api.example.com/x', invoice: 'lnbc50u1x' }), nowMs: NOW, ledger });
+  assert('cross-rail: 5000 sats (2.5 USD) after 3 USD x402 spend (5.5/5) → DENY', v2.allow === false && v2.reason.includes('[cross-rail]'), v2.reason);
+  const v3 = await authorizeL402Payment(cfg, { decoded: decodeL402({ origin: 'https://api.example.com/x', invoice: 'lnbc30u1x' }), nowMs: NOW });
+  assert('cross-rail: budget mandate with no counter → DENY (fail-closed)', v3.allow === false && v3.reason.includes('no cross-rail counter'), v3.reason);
+
+  // Hook path: an ALLOWED payment is recorded into the shared ledger.
+  const h = await handleL402PaymentHook(cfg, { origin: 'https://api.example.com/x', invoice: 'lnbc20u1x', crossRailLedgerPath: ledgerPath });
+  const after = ledger.sumWindowConverted({ sat: '0.0005', USDC: '1' });
+  assert('cross-rail: hook allow records the sats spend into the shared ledger (3 USD + 1 USD)',
+    h.decision === 'allow' && after.ok && after.total === 4_000_000n, `decision=${h.decision} total=${after.ok ? after.total : after.reason}`);
+}
+
 // ---- SELLER SIDE (Aperture, holder-bound presentation) ----
 const cfgSeller = verifierConfig(principal.did, dir, '(unused-seller-side)');
 async function seller(name, vp, challenge, expectServe) {

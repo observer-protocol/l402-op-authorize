@@ -69,6 +69,7 @@ export function verifierConfig(issuerDid, dir, credentialPath) {
     schemaAllowlist: [
       'https://observerprotocol.org/schemas/delegation/v2.1.json',
       'https://observerprotocol.org/schemas/delegation/v2.3.json',
+      'https://observerprotocol.org/schemas/delegation/v2.4.json',
     ],
     revocation: { maxStalenessHours: 24, onUnreachable: 'cache-then-deny', fetchTimeoutMs: 1500 },
     didCache: { maxStalenessHours: 24 },

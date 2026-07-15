@@ -36,6 +36,8 @@ async function buyer(name, vacOpts, decodeArgs, expectAllow) {
 }
 console.log('— buyer side (lnget) —');
 await buyer('50k sats to allowlisted merchant → ALLOW', {}, { origin: 'https://api.example.com/x', invoice: 'lnbc500u1x' }, true);
+// v2.4: a credential declaring the current Sovereign delegation schema is accepted end-to-end.
+await buyer('v2.4 credentialSchema accepted → ALLOW', { schemaId: 'https://observerprotocol.org/schemas/delegation/v2.4.json' }, { origin: 'https://api.example.com/x', invoice: 'lnbc500u1x' }, true);
 await buyer('150k sats over the 100k ceiling → DENY', {}, { origin: 'https://api.example.com/x', invoice: 'lnbc1500u1x' }, false);
 await buyer('non-allowlisted origin → DENY', {}, { origin: 'https://evil.example.net/x', invoice: 'lnbc500u1x' }, false);
 await buyer('amountless invoice under a ceiling → DENY (fail-closed)', {}, { origin: 'https://api.example.com/x', invoice: 'lnbc1x' }, false);

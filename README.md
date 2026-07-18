@@ -2,6 +2,8 @@
 
 **The L402/Lightning instance of [OP Crossrail](https://observerprotocol.org)** — one signed mandate, one rolling cross-rail budget, one shared spend ledger, enforced on every rail an agent pays on. This engine enforces it at the Lightning pre-payment hook.
 
+> **Co-location contract (read before relying on the cross-rail budget):** the cross-rail ledger is a local append-only file with no cross-process locking. Every adapter sharing a budget MUST be handed the SAME path IN THE SAME PROCESS. Different paths give each rail its own budget (the budget multiplies); a shared path across processes races and under-counts. Neither of these fails closed — verify co-location in your deployment. A missing path fails closed (that rail denies).
+
 Observer Protocol's fourth enforcement engine: **authorization for L402 / Lightning agentic
 commerce**, over the `lnget` (buyer) and Aperture (seller) seam of Lightning Labs' L402 stack.
 Composes via a vendor-neutral env hook, with **no changes to any Lightning Labs repo**.

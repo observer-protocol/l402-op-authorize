@@ -1,6 +1,6 @@
 {
   "name": "@observer-protocol/l402-op-authorize",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Observer Protocol authorization for L402 / Lightning (lnget buyer + Aperture seller). Verifies a signed, revocable did:key delegation against the proposed L402 payment at the buyer side, fail-closed, and verifies a holder-bound credential presentation at the seller side. Same vendored core as ows-op-verify and mppx-op-account: only the decoder changed.",
   "license": "MIT",
   "type": "module",
@@ -51,7 +51,7 @@
     "eddsa-jcs-2022"
   ],
   "dependencies": {
-    "@observer-protocol/policy-engine": "^0.3.0"
+    "@observer-protocol/policy-engine": "^0.3.2"
   },
   "devDependencies": {
     "@types/node": "^25.9.2",

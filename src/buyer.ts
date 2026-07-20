@@ -10,7 +10,13 @@
 
 import type { DecodedPayment } from './l402.js';
 import type { CrossRailLedger, PolicyContext, ResolvedTransfer, RailDef, VerifierConfig } from '@observer-protocol/policy-engine';
-import { formatBudgetUnits } from '@observer-protocol/policy-engine';
+import { formatBudgetUnits, assertLedgerCoreSafe } from '@observer-protocol/policy-engine';
+
+// Self-report the bundled core (frozen in this dist at build): warn once at load
+// if it is below the ledger-safe floor. Silent when safe. (Module-level; l402 has
+// no create-factory. Refuse-opt-in is not wired here — warn-only — because module
+// scope carries no per-caller config; the buyer path is where the budget lives.)
+assertLedgerCoreSafe();
 import { verifyCredential, enforceMandate, type Verdict } from './verify.js';
 
 /** chain_id used for the Lightning rail in the verifier config + the mandate's

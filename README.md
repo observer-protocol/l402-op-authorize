@@ -1,6 +1,8 @@
 # @observer-protocol/l402-op-authorize
 
-**The L402/Lightning instance of [OP Crossrail](https://observerprotocol.org)** — one signed mandate, one rolling cross-rail budget, one shared spend ledger, enforced on every rail an agent pays on. This engine enforces it at the Lightning pre-payment hook.
+**The L402/Lightning instance of [OP Crossrail](https://observerprotocol.org)** — one signed mandate, one rolling cross-rail budget, one shared spend ledger, enforced on every rail an agent pays on. This engine evaluates it at the Lightning pre-payment hook.
+
+> **Decision layer, not a chokepoint.** `handleL402PaymentHook` returns `allow` or `deny` and never throws. The engine holds no key, produces no signature and pays nothing, so a denied payment is prevented only if the calling client honors the verdict. No wiring from `lnget` to this hook is evidenced in this repo. Treat the deny as advice your client must act on, and verify that path in your own deployment.
 
 > **Co-location contract (read before relying on the cross-rail budget):** the cross-rail ledger is a local append-only file with no cross-process locking. Every adapter sharing a budget MUST be handed the SAME path IN THE SAME PROCESS. Different paths give each rail its own budget (the budget multiplies); a shared path across processes races and under-counts. Neither of these fails closed — verify co-location in your deployment. A missing path fails closed (that rail denies).
 
@@ -52,7 +54,7 @@ const { decision, reason } = await handleL402PaymentHook(config, {
 ```
 `config` is a `VerifierConfig` pinned to the principal's `did:key` (`issuerDid`), with the agent's
 signed delegation at `credentialPath`, `schemaAllowlist`, and `rails: { lightning: { currency:'sat', decimals:0 } }`.
-Out-of-mandate, over-limit, expired, revoked, or unestablishable amounts **fail closed** — lnget never pays.
+Out-of-mandate, over-limit, expired, revoked, or unestablishable amounts **deny**. The deny is a returned verdict, not a refusal to sign: see the decision-layer note above. Whether `lnget` pays is a property of the client that calls the hook.
 
 ## Seller side — Aperture, holder-bound (the wedge)
 ```ts

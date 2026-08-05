@@ -1,5 +1,29 @@
 # @observer-protocol/l402-op-authorize
 
+> **SUPPORT TIER — PROVEN AGAINST A LIVE SYSTEM, NOT YET DEPLOYABLE.** The strongest evidence of
+> the seven Observer Protocol adapters, and still not something to put in front of production
+> traffic.
+>
+> **What backs it.** `op-lnd-interceptor/op-lnd-middleware.mjs` imports `authorizeL402Payment` and
+> evaluates the verdict **in-process**. The mainnet existence proof (lnd v0.20.1-beta, one node,
+> ours) refused 200,000 sat against a 100,000 sat ceiling with a live channel and 481,500 sat of
+> local balance; allowed and settled 10 sat with a real preimage; and had a hand-rolled gRPC client,
+> running as a separate uid and presenting the sanctioned macaroon, refused by the node.
+>
+> **What is missing.** The interceptor has no install path yet (systemd unit or container), and its
+> binding constraint is real issuance: the proof used a demo `did:key` generated on the box, and the
+> production issuer is offline. **Proven is not deployed.**
+>
+> **Versions.** Published `0.4.0`; its consumer declares `^0.3.2`.
+> The Observer Protocol API's `rails.registry.json` pins `0.3.0`, which is behind. **That pin is
+> not tracked to publication and must not be read as the current version.** Every rail in that
+> registry is currently behind its published package, some by two minors. Whether the registry
+> ought to track publication or deliberately lag is an open decision, recorded here rather than
+> quietly corrected.
+>
+> Tiers for all seven Observer Protocol adapters are listed together in
+> [`op-policy-engine`](https://github.com/observer-protocol/op-policy-engine#adapter-support-tiers).
+
 **The L402/Lightning instance of [OP Crossrail](https://observerprotocol.org)** — one signed mandate, one rolling cross-rail budget, one shared spend ledger, enforced on every rail an agent pays on. This engine evaluates it at the Lightning pre-payment hook.
 
 > **Decision layer, not a chokepoint.** `handleL402PaymentHook` returns `allow` or `deny` and never throws. The engine holds no key, produces no signature and pays nothing, so a denied payment is prevented only if the calling client honors the verdict. No wiring from `lnget` to this hook is evidenced in this repo. Treat the deny as advice your client must act on, and verify that path in your own deployment.
